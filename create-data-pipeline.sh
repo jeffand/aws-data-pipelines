@@ -1,4 +1,5 @@
 #!/bin/sh
+source ./dotenv
 
 # script to create a pipeline
 # argument one: 	name of the pipeline
