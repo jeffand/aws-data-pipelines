@@ -1,0 +1,147 @@
+{
+  "objects": [
+    {
+      "period": "1 days",
+      "name": "Every 1 day",
+      "id": "DefaultSchedule",
+      "type": "Schedule",
+      "startAt": "FIRST_ACTIVATION_DATE_TIME"
+    },
+    {
+      "databaseName": "snowplow",
+      "*password": "tmg-ENQ-84L-SLg",
+      "name": "Redshift Database",
+      "clusterId": "production-redshift-funnyordie-com",
+      "id": "RedshiftDatabaseId_gp1aK",
+      "type": "RedshiftDatabase",
+      "username": "funnyordie"
+    },
+    {
+      "failureAndRerunMode": "CASCADE",
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "resourceRole": "DataPipelineDefaultResourceRole",
+      "role": "DataPipelineDefaultRole",
+      "pipelineLogUri": "s3://fod-data-pipelines/logs/",
+      "scheduleType": "CRON",
+      "name": "Default",
+      "id": "Default"
+    },
+    {
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "dataFormat": {
+        "ref": "DataFormatId_DuTir"
+      },
+      "filePath": "s3://fod-data-pipelines/data/mailing_list_subscriptions/mailing_list_subscriptions.csv.gz",
+      "name": "S3",
+      "id": "DataNodeId_xfFHz",
+      "type": "S3DataNode",
+      "compression": "GZIP"
+    },
+    {
+      "name": "CSV",
+      "id": "DataFormatId_DuTir",
+      "type": "CSV"
+    },
+    {
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "database": {
+        "ref": "RedshiftDatabaseId_gp1aK"
+      },
+      "name": "Redshift",
+      "runsOn": {
+        "ref": "ResourceId_74DC7"
+      },
+      "id": "DataNodeId_TURcf",
+      "type": "RedshiftDataNode",
+      "tableName": "mailing_list_subscriptions"
+    },
+    {
+      "output": {
+        "ref": "DataNodeId_TURcf"
+      },
+      "input": {
+        "ref": "DataNodeId_xfFHz"
+      },
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "name": "Copy To Redshift",
+      "runsOn": {
+        "ref": "ResourceId_74DC7"
+      },
+      "id": "ActivityId_Iu3tr",
+      "type": "RedshiftCopyActivity",
+      "insertMode": "TRUNCATE"
+    },
+    {
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "resourceRole": "DataPipelineDefaultResourceRole",
+      "role": "DataPipelineDefaultRole",
+      "instanceType": "m1.small",
+      "name": "EC2 worker",
+      "id": "ResourceId_74DC7",
+      "type": "Ec2Resource",
+      "terminateAfter": "30 Minutes"
+    },
+    {
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "database": {
+        "ref": "DatabaseId_Yt6TM"
+      },
+      "name": "MySQL",
+      "id": "DataNodeId_HMLRH",
+      "type": "MySqlDataNode",
+      "table": "mailing_list_subscriptions",
+      "selectQuery": "SELECT id, mailing_list_id, signup_source, created_at, referred_by_account_id, user_id FROM mailing_list_subscriptions;"
+    },
+    {
+      "connectionString": "jdbc:mysql://${DWARF_DB_CONNECTION_STRING}",
+      "*password": "${DWARF_DB_PASSWORD}",
+      "name": "MySQL Database",
+      "id": "DatabaseId_Yt6TM",
+      "type": "JdbcDatabase",
+      "jdbcDriverClass": "com.mysql.jdbc.Driver",
+      "username": "${DWARF_DB_USERID}"
+    },
+    {
+      "role": "DataPipelineDefaultRole",
+      "subject": "mailing_list_subscriptions data pipeline FAILURE",
+      "name": "On Failure",
+      "id": "ActionId_75PGl",
+      "type": "SnsAlarm",
+      "message": "failure",
+      "topicArn": "arn:aws:sns:us-east-1:863952017468:data-pipeline-failures"
+    },
+    {
+      "output": {
+        "ref": "DataNodeId_xfFHz"
+      },
+      "input": {
+        "ref": "DataNodeId_HMLRH"
+      },
+      "schedule": {
+        "ref": "DefaultSchedule"
+      },
+      "onFail": {
+        "ref": "ActionId_75PGl"
+      },
+      "name": "Copy to S3",
+      "runsOn": {
+        "ref": "ResourceId_74DC7"
+      },
+      "id": "ActivityId_Ni0oB",
+      "type": "CopyActivity"
+    }
+  ],
+  "parameters": []
+}
